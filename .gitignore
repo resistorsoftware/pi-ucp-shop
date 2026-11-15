@@ -1,0 +1,8 @@
+# Durable agent state: per-thread SQLite transcripts, recreated on demand.
+.shop-state/
+
+durable/node_modules/
+
+# OpenCode writes its own .opencode/.gitignore, which ignores itself — so repeat the
+# one entry that matters here, to keep a fresh clone clean before opencode first runs.
+.opencode/node_modules/
