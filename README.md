@@ -1,5 +1,45 @@
 # pi-ucp-shop
 
+**A working agent that shops real merchant catalogs over UCP, the Universal Commerce Protocol
+published by Shopify and Google in January 2026.** It runs entirely on one machine against a
+local model, and it is read-only by construction: it researches and recommends, and cannot
+spend money.
+
+It exists to answer a practical question — what does building against UCP actually involve? —
+and the findings are in [What this demonstrates](#what-this-demonstrates) below. Everything
+stated here was measured against the live catalog, not estimated.
+
+> Status: a working prototype built over two days in November 2026, not a product. It is
+> published because the protocol findings are useful to anyone else evaluating UCP, and because
+> the agent-reliability techniques generalise. `@earendil-works/pi-durable` is experimental and
+> its API changes between releases, so expect this to need updating.
+
+## What this demonstrates
+
+- **UCP splits commerce across two layers, and you have to design for it.** Product discovery
+  is global and unauthenticated: one catalog, every merchant, filterable by where the buyer is
+  and where stock is held. Physical store locations are not in that catalog at all. They live
+  on each merchant, behind a separate capability, at the merchant's own endpoint. Any agent
+  answering "can I buy this near me" is necessarily doing two phases.
+- **Store data is real but uneven.** Of 24 merchants sampled across four product queries, 7
+  exposed `dev.ucp.common.location.search` — roughly a third, skewed toward outdoor retailers.
+- **The global catalog cannot confirm a colour or size.** It returns one representative variant
+  per product, so filtering on either is sampling, not an inventory check. Merchant option
+  names are inconsistent across languages and fields.
+- **Literal matching hides whole cities.** `search_locations` does no geocoding, so a query for
+  a city returns nothing for a chain whose branches are named after its suburbs. Handling this
+  badly produces a confident, wrong "no stores near you".
+- **Constraints belong in code, not in the prompt.** Three rules were given to the model in
+  prose, ignored, and then held perfectly once enforced in TypeScript.
+- **Durable execution survives a crash mid-run.** The agent commits each step before showing
+  it, so a process killed partway through resumes from the last committed step instead of
+  redoing the work. Verified by `SIGKILL` and reproduced below.
+
+A narrative write-up of the same material is at
+[An Agent That Shops, and Survives a Crash](https://www.resistorsoftware.com/posts/an-agent-that-shops/).
+
+## How it fits together
+
 OpenCode orchestrates → a pi-durable harness runs the agent loop → UCP reaches real Shopify
 merchant catalogs. Every step the agent takes is committed to SQLite before it is shown, so an
 interrupted run resumes instead of starting over.
